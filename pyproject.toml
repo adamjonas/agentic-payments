@@ -1,0 +1,23 @@
+[project]
+name = "agentic-payments"
+version = "0.1.0"
+description = "AI agent that can browse the web and make Lightning payments via L402"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "sse-starlette>=2.2",
+    "anthropic>=0.52",
+    "httpx>=0.28",
+    "aiosqlite>=0.21",
+]
+
+[tool.setuptools.packages.find]
+include = ["backend*"]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.9",
+    "pytest>=8",
+    "pytest-asyncio>=0.25",
+]

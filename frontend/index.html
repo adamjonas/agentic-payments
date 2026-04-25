@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mintty</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e77d59'/><path d='M30 55 Q35 30 50 28 Q65 30 70 55' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/><circle cx='40' cy='52' r='4' fill='%23fff'/><circle cx='60' cy='52' r='4' fill='%23fff'/><path d='M43 62 Q50 68 57 62' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round'/><path d='M25 38 Q30 25 42 28' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round'/><path d='M75 38 Q70 25 58 28' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round'/></svg>" />
+  <style>
+    :root {
+      --bg: #1f1f1d;
+      --panel: #272724;
+      --panel-strong: #30302c;
+      --surface: #242421;
+      --border: #3e3d38;
+      --border-soft: #31302c;
+      --text: #f3f0e9;
+      --text-muted: #aaa69b;
+      --text-faint: #817d74;
+      --accent: #e77d59;
+      --accent-strong: #f19972;
+      --accent-soft: rgba(231, 125, 89, 0.16);
+      --blue: #6f8ddc;
+      --blue-soft: rgba(111, 141, 220, 0.16);
+      --green: #8fcf9b;
+      --green-soft: rgba(143, 207, 155, 0.14);
+      --red: #ef7b8a;
+      --red-soft: rgba(239, 123, 138, 0.14);
+      --shadow: 0 22px 55px rgba(0, 0, 0, 0.26);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { height: 100%; }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      position: relative;
+      padding: 18px 28px 10px;
+      border-bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      gap: 16px;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 750;
+      color: var(--text);
+      letter-spacing: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header h1::before {
+      content: '';
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px var(--accent-soft);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .budget-badge {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--panel);
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .budget-badge .amount {
+      color: var(--green);
+      font-weight: 750;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 920px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 14px 28px 22px;
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #stream {
+      flex: 1 1 0;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      min-height: 0;
+      padding: 8px 4px 22px;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .event {
+      position: relative;
+      padding: 0;
+      line-height: 1.5;
+      animation: fadeIn 0.3s ease;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .event.step::before {
+      display: none;
+    }
+
+    .event.step::after {
+      display: none;
+    }
+
+    .event.step.done::after {
+      display: none;
+    }
+
+    .event.step {
+      width: fit-content;
+      max-width: min(680px, 88%);
+      margin: 0 0 10px 86px;
+      padding: 0;
+      color: var(--text-muted);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+    }
+
+    .event.step.quiet {
+      color: var(--text-faint);
+    }
+
+    .event-text {
+      display: inline;
+      color: var(--text-faint);
+    }
+
+    .event.user {
+      margin: 20px 0 18px auto;
+      padding: 0;
+      max-width: min(760px, 86%);
+      color: var(--accent-strong);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      box-shadow: none;
+      font-size: 16px;
+      line-height: 1.65;
+      font-weight: 600;
+    }
+
+    .event.user::before {
+      display: none;
+    }
+
+    .event.result {
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.65;
+      margin: 24px 0 32px 86px;
+      padding: 0;
+      max-width: min(760px, 92%);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      animation: fadeIn 0.4s ease;
+      box-shadow: none;
+    }
+
+    .event.result::before {
+      content: 'Agent';
+      display: block;
+      color: var(--text-faint);
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1;
+      margin-bottom: 8px;
+      text-transform: none;
+    }
+
+    .event.result h2,
+    .event.result h3 {
+      color: var(--text);
+      font-size: 19px;
+      line-height: 1.35;
+      margin: 18px 0 10px;
+      font-weight: 760;
+    }
+
+    .event.result h2:first-child,
+    .event.result h3:first-child {
+      margin-top: 0;
+    }
+
+    .event.result p {
+      margin: 0 0 14px;
+    }
+
+    .event.result ul {
+      list-style: none;
+      margin: 8px 0 20px;
+      padding: 0;
+    }
+
+    .event.result li {
+      position: relative;
+      margin: 7px 0;
+      padding-left: 18px;
+    }
+
+    .event.result li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.72em;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .event.result strong {
+      color: var(--text);
+      font-weight: 760;
+    }
+
+    .event.error {
+      color: var(--red);
+      font-size: 13px;
+      margin: 8px 0 18px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .event.error::before {
+      content: '!';
+      margin-right: 8px;
+      font-weight: bold;
+    }
+
+    .empty-state {
+      height: 100%;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      color: var(--text-muted);
+      padding: 0 0 8vh;
+      text-align: center;
+    }
+
+    .empty-state h2 {
+      color: var(--text);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 34px;
+      line-height: 1.14;
+      font-weight: 500;
+      letter-spacing: 0;
+      max-width: 720px;
+    }
+
+    .empty-state p {
+      display: none;
+    }
+
+    .thinking-symbol {
+      width: 142px;
+      height: 118px;
+      margin: 0 auto;
+      overflow: visible;
+    }
+
+    .thinking-symbol .node {
+      fill: transparent;
+      stroke: var(--text);
+      stroke-width: 3;
+      opacity: 0.92;
+    }
+
+    .thinking-symbol .node.active {
+      fill: #78bd47;
+      stroke: #78bd47;
+    }
+
+    .thinking-symbol .edge {
+      stroke: #516782;
+      stroke-width: 1.6;
+      opacity: 0.8;
+    }
+
+    .thinking-symbol .edge.active {
+      stroke: #78bd47;
+      stroke-width: 3.6;
+      opacity: 1;
+      stroke-dasharray: 190;
+      stroke-dashoffset: 190;
+      animation: thinkPath 1.55s ease-in-out infinite;
+    }
+
+    .thinking-symbol.compact {
+      width: 31px;
+      height: 25px;
+      margin: 0 8px 0 0;
+      vertical-align: -7px;
+    }
+
+    .thinking-symbol.compact .node {
+      stroke-width: 5;
+    }
+
+    .thinking-symbol.compact .edge {
+      stroke-width: 3;
+    }
+
+    .thinking-symbol.compact .edge.active {
+      stroke-width: 6;
+    }
+
+    @keyframes thinkPath {
+      0% { stroke-dashoffset: 190; }
+      48% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -190; }
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1s ease-in-out infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    #input-area {
+      display: flex;
+      gap: 10px;
+      position: relative;
+      padding: 8px 0;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    #query {
+      flex: 1;
+      min-width: 0;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(243, 240, 233, 0.12);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 15px;
+      padding: 15px 18px;
+      border-radius: 999px;
+      outline: none;
+    }
+
+    #query:focus {
+      border-color: rgba(243, 240, 233, 0.28);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    #query::placeholder {
+      color: var(--text-muted);
+    }
+
+    .launch-platform {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: 112px;
+      isolation: isolate;
+    }
+
+    #send {
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 750;
+      padding: 12px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.15s;
+      width: 100%;
+      min-width: 92px;
+      box-shadow: 0 10px 24px rgba(231, 125, 89, 0.18);
+      position: relative;
+      z-index: 1;
+    }
+
+    #send:hover { opacity: 0.92; transform: translateY(-1px); }
+    #send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 14px 16px;
+      }
+
+      header h1 {
+        font-size: 13px;
+      }
+
+      main {
+        padding: 18px 14px;
+      }
+
+      .empty-state h2 {
+        font-size: 23px;
+      }
+
+      .empty-state {
+        padding: 0 0 8vh;
+      }
+
+      .thinking-symbol {
+        width: 118px;
+        height: 98px;
+      }
+
+      #input-area {
+        padding: 8px;
+      }
+
+      #send {
+        min-width: 70px;
+        padding-inline: 12px;
+      }
+
+      .launch-platform {
+        min-width: 78px;
+      }
+    }
+
+    /* ---- Wallet modal ---- */
+    .wallet-btn {
+      font-size: 12px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(244, 183, 64, 0.25);
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .wallet-btn:hover {
+      background: rgba(244, 183, 64, 0.22);
+      border-color: rgba(244, 183, 64, 0.45);
+    }
+
+    .wallet-bal {
+      color: var(--green);
+      font-weight: 750;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.62);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      width: 380px;
+      max-width: 90vw;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal h2 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .modal p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .modal-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .modal-row input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 12px;
+      border-radius: 7px;
+      outline: none;
+    }
+
+    .modal-row input:focus {
+      border-color: var(--accent);
+    }
+
+    .modal-row input::placeholder {
+      color: var(--text-faint);
+    }
+
+    .modal-btn {
+      background: var(--accent);
+      color: #1f1f1d;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .modal-btn:hover { opacity: 0.9; }
+    .modal-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .modal-btn-secondary {
+      background: var(--panel-strong);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .modal-btn-secondary:hover {
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    #invoice-area {
+      display: none;
+    }
+
+    #invoice-area.active {
+      display: block;
+    }
+
+    #qr-canvas {
+      display: block;
+      margin: 0 auto 14px;
+      border-radius: 8px;
+    }
+
+    .invoice-string {
+      font-size: 11px;
+      color: var(--text-faint);
+      word-break: break-all;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      max-height: 60px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      line-height: 1.4;
+    }
+
+    .invoice-string:hover {
+      border-color: var(--accent);
+    }
+
+    .invoice-string.copied {
+      border-color: var(--green);
+    }
+
+    .invoice-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent-strong);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+      word-break: normal;
+    }
+
+    .invoice-link::before {
+      content: 'Open invoice in wallet';
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .invoice-copy-hint {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-faint);
+      text-align: left;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-footer .hint {
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .wallet-balance-line {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      padding: 8px 10px;
+      background: var(--surface);
+      border-radius: 6px;
+    }
+
+    .wallet-balance-line .amt {
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    /* ---- Bird animation ---- */
+    .bird-container {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100;
+      transform-origin: center;
+    }
+
+    .bird {
+      position: relative;
+    }
+
+    .bird svg {
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 10px 14px rgba(216, 137, 19, 0.28));
+    }
+
+    .bird-container.fly-up {
+      animation: birdFlyUp 0.86s cubic-bezier(0.17, 0.84, 0.28, 1) forwards;
+    }
+
+    @keyframes birdFlyUp {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(-8deg) scale(0.96);
+      }
+      45% {
+        opacity: 1;
+        transform: translate(var(--mid-x), var(--mid-y)) rotate(-24deg) scale(1.08);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--fly-x), var(--fly-y)) rotate(-10deg) scale(0.48);
+      }
+    }
+
+    .bird svg .wing {
+      transform-origin: center;
+      animation: planeGlint 0.38s ease-in-out infinite alternate;
+    }
+
+    @keyframes planeGlint {
+      from { opacity: 0.65; }
+      to { opacity: 1; }
+    }
+
+    /* Trail behind the flying send icon */
+    .sparkle {
+      position: fixed;
+      width: 24px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(231, 125, 89, 0), rgba(231, 125, 89, 0.58));
+      pointer-events: none;
+      z-index: 99;
+      transform: rotate(-42deg);
+      animation: sparkle 0.5s ease-out forwards;
+    }
+
+    @keyframes sparkle {
+      0% { opacity: 1; transform: rotate(-42deg) scaleX(1); }
+      100% { opacity: 0; transform: rotate(-42deg) scaleX(0.35); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Mintty</h1>
+    <div class="header-actions">
+      <button class="wallet-btn" id="new-chat-btn" style="background:transparent;border-color:var(--border);color:var(--text-muted);">New Chat</button>
+      <div class="budget-badge">budget: <span class="amount" id="budget">...</span> sats</div>
+      <button class="wallet-btn" id="fund-btn">Fund Wallet</button>
+    </div>
+  </header>
+
+  <!-- Wallet funding modal -->
+  <div class="modal-overlay" id="wallet-modal">
+    <div class="modal">
+      <h2>Fund Wallet</h2>
+      <p>Generate a Lightning invoice and pay it from any wallet to add sats.</p>
+      <div class="wallet-balance-line">Wallet balance: <span class="amt" id="modal-balance">...</span> sats</div>
+      <div class="modal-row">
+        <input type="number" id="fund-amount" placeholder="Amount in sats (e.g. 5000)" min="1" />
+        <button class="modal-btn" id="generate-btn">Generate</button>
+      </div>
+      <div id="invoice-area">
+        <canvas id="qr-canvas" width="200" height="200"></canvas>
+        <a class="invoice-string invoice-link" id="invoice-text" href="#" title="Open in wallet or click to copy"></a>
+        <div class="invoice-copy-hint">Click to copy the full invoice.</div>
+        <div class="modal-footer">
+          <span class="hint">Use a Lightning wallet or tap the link to copy.</span>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin-top:18px;padding-top:16px;">
+        <h2 style="font-size:14px;margin-bottom:12px;">Spending Limits</h2>
+        <div class="modal-row">
+          <div style="flex:1;">
+            <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px;">Daily budget (sats)</label>
+            <input type="number" id="setting-daily" min="0" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:14px;padding:8px 10px;border-radius:6px;outline:none;" />
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px;">Max per purchase (sats)</label>
+            <input type="number" id="setting-per-tx" min="0" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:14px;padding:8px 10px;border-radius:6px;outline:none;" />
+          </div>
+        </div>
+        <button class="modal-btn" id="save-budget-btn" style="width:100%;margin-top:4px;">Save Limits</button>
+        <div id="budget-saved" style="font-size:11px;color:var(--green);text-align:center;margin-top:6px;opacity:0;transition:opacity 0.3s;"></div>
+      </div>
+      <div class="modal-footer" style="margin-top:14px;">
+        <span></span>
+        <button class="modal-btn modal-btn-secondary" id="close-modal-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div id="stream"></div>
+
+    <div id="input-area">
+      <input
+        type="text"
+        id="query"
+        placeholder="Ask the agent to research something..."
+        autocomplete="off"
+      />
+      <div class="launch-platform" id="launch-platform">
+        <button id="send">Send</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const streamEl = document.getElementById('stream');
+    const queryEl = document.getElementById('query');
+    const sendBtn = document.getElementById('send');
+    const launchPlatformEl = document.getElementById('launch-platform');
+    const budgetEl = document.getElementById('budget');
+
+    // Session ID for conversation memory
+    let sessionId = crypto.randomUUID();
+
+    const emptyStateMarkup = `
+      <div class="empty-state">
+        <h2>Hi! What can I buy for you?</h2>
+        <p></p>
+        ${thinkingSymbolMarkup()}
+      </div>
+    `;
+
+    function thinkingSymbolMarkup(compact = false) {
+      const cls = compact ? 'thinking-symbol compact' : 'thinking-symbol';
+      return `
+        <svg class="${cls}" viewBox="0 0 142 118" aria-hidden="true">
+          <line class="edge" x1="16" y1="14" x2="116" y2="34"></line>
+          <line class="edge" x1="16" y1="14" x2="116" y2="85"></line>
+          <line class="edge active" x1="16" y1="55" x2="116" y2="34"></line>
+          <line class="edge" x1="16" y1="55" x2="116" y2="85"></line>
+          <line class="edge" x1="16" y1="98" x2="116" y2="34"></line>
+          <line class="edge" x1="16" y1="98" x2="116" y2="85"></line>
+          <circle class="node" cx="16" cy="14" r="12"></circle>
+          <circle class="node active" cx="16" cy="55" r="12"></circle>
+          <circle class="node" cx="16" cy="98" r="12"></circle>
+          <circle class="node active" cx="116" cy="34" r="12"></circle>
+          <circle class="node" cx="116" cy="85" r="12"></circle>
+        </svg>
+      `;
+    }
+
+    // ---- Bird animation ----
+    function launchBird() {
+      const platformRect = launchPlatformEl.getBoundingClientRect();
+      const startX = platformRect.left + platformRect.width / 2;
+      const startY = platformRect.top + platformRect.height / 2 - 2;
+      const targetX = startX - 190;
+      const targetY = 28;
+      const flyX = targetX - startX;
+      const flyY = targetY - startY;
+      const midX = flyX * 0.46;
+      const midY = flyY * 0.72 - 54;
+
+      launchPlatformEl.classList.remove('launching');
+      void launchPlatformEl.offsetWidth;
+      launchPlatformEl.classList.add('launching');
+      setTimeout(() => launchPlatformEl.classList.remove('launching'), 720);
+
+      const container = document.createElement('div');
+      container.className = 'bird-container';
+      container.style.left = startX + 'px';
+      container.style.top = startY + 'px';
+      container.style.setProperty('--fly-x', flyX + 'px');
+      container.style.setProperty('--fly-y', flyY + 'px');
+      container.style.setProperty('--mid-x', midX + 'px');
+      container.style.setProperty('--mid-y', midY + 'px');
+
+      container.innerHTML = `
+        <div class="bird">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.5 3.5 3.2 11.4c-.8.3-.8 1.4.1 1.7l6.2 2.1 2.2 6.2c.3.8 1.4.9 1.7.1l8-18c.3-.7-.3-1.3-.9-1z" fill="var(--accent)"/>
+            <path class="wing" d="M9.5 15.2 21 3.9 11.7 17.6z" fill="#fff7e8" opacity="0.86"/>
+            <path d="M3.7 12.2h6.8" stroke="#fff7e8" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+          </svg>
+        </div>
+      `;
+
+      document.body.appendChild(container);
+
+      // Draw a short trail along the flight path
+      let sparkleCount = 0;
+      const sparkleInterval = setInterval(() => {
+        if (sparkleCount > 5) { clearInterval(sparkleInterval); return; }
+        const progress = sparkleCount / 5;
+        const arcLift = Math.sin(progress * Math.PI) * 42;
+        const sx = startX + flyX * progress - 22;
+        const sy = startY + flyY * progress - arcLift + 10;
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        sparkle.style.left = sx + 'px';
+        sparkle.style.top = sy + 'px';
+        sparkle.style.opacity = String(0.9 - progress * 0.45);
+        document.body.appendChild(sparkle);
+        setTimeout(() => sparkle.remove(), 600);
+        sparkleCount++;
+      }, 70);
+
+      // Trigger fly animation
+      requestAnimationFrame(() => container.classList.add('fly-up'));
+
+      // Clean up
+      setTimeout(() => container.remove(), 940);
+    }
+
+    // ---- Budget ----
+    async function refreshBudget() {
+      try {
+        const res = await fetch('/budget');
+        const data = await res.json();
+        budgetEl.textContent = data.remaining_sats.toLocaleString();
+      } catch (e) {
+        budgetEl.textContent = '?';
+      }
+    }
+    refreshBudget();
+
+    // ---- Stream events ----
+    function showEmptyState() {
+      streamEl.innerHTML = emptyStateMarkup;
+      sessionId = crypto.randomUUID(); // new conversation
+    }
+
+    function removeEmptyState() {
+      streamEl.querySelector('.empty-state')?.remove();
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function renderMarkdown(text) {
+      const lines = String(text || '').split('\n');
+      const html = [];
+      let listOpen = false;
+      let paragraph = [];
+
+      const flushParagraph = () => {
+        if (!paragraph.length) return;
+        html.push(`<p>${formatInline(paragraph.join(' '))}</p>`);
+        paragraph = [];
+      };
+
+      const closeList = () => {
+        if (!listOpen) return;
+        html.push('</ul>');
+        listOpen = false;
+      };
+
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) {
+          flushParagraph();
+          closeList();
+          continue;
+        }
+
+        const heading = line.match(/^(#{2,4})\s+(.+)$/);
+        if (heading) {
+          flushParagraph();
+          closeList();
+          const level = heading[1].length <= 2 ? 'h2' : 'h3';
+          html.push(`<${level}>${formatInline(heading[2])}</${level}>`);
+          continue;
+        }
+
+        const bullet = line.match(/^[-*]\s+(.+)$/);
+        if (bullet) {
+          flushParagraph();
+          if (!listOpen) {
+            html.push('<ul>');
+            listOpen = true;
+          }
+          html.push(`<li>${formatInline(bullet[1])}</li>`);
+          continue;
+        }
+
+        paragraph.push(line);
+      }
+
+      flushParagraph();
+      closeList();
+      return html.join('');
+    }
+
+    function formatInline(text) {
+      return escapeHtml(text)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.+?)`/g, '<code>$1</code>');
+    }
+
+    function addEvent(type, text, meta = {}) {
+      const div = document.createElement('div');
+      div.className = `event ${type}`;
+
+      if (type === 'step') {
+        div.innerHTML = `
+          ${thinkingSymbolMarkup(true)}
+          <span class="event-text"><span class="spinner"></span>${escapeHtml(text || 'Thinking...')}</span>
+        `;
+      } else if (type === 'result') {
+        div.dataset.raw = text || '';
+        div.innerHTML = renderMarkdown(div.dataset.raw);
+      } else {
+        div.textContent = text;
+      }
+
+      streamEl.appendChild(div);
+      streamEl.scrollTop = streamEl.scrollHeight;
+      return div;
+    }
+
+    function clearSpinners() {
+      streamEl.querySelectorAll('.spinner').forEach(el => {
+        el.parentElement.parentElement.classList.add('done');
+        el.remove();
+      });
+    }
+
+    function showThinking() {
+      const existing = streamEl.querySelector('.event.step.quiet');
+      if (existing) return existing;
+      const event = addEvent('step', 'Thinking...');
+      event.classList.add('quiet');
+      return event;
+    }
+
+    // ---- Send query ----
+    async function sendQuery() {
+      const query = queryEl.value.trim();
+      if (!query) return;
+
+      queryEl.value = '';
+      sendBtn.disabled = true;
+
+      // Launch the bird!
+      launchBird();
+
+      removeEmptyState();
+      addEvent('user', query);
+      showThinking();
+
+      // Small delay so the bird is visible before stream starts
+      await new Promise(r => setTimeout(r, 400));
+
+      await new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/agent');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        let parsed = 0;
+        let currentEvent = '';
+        let currentData = '';
+
+        xhr.onprogress = () => {
+          const chunk = xhr.responseText.substring(parsed);
+          parsed = xhr.responseText.length;
+
+          const lines = chunk.split('\n');
+          for (const rawLine of lines) {
+            const line = rawLine.replace(/\r$/, '');
+            if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7);
+            } else if (line.startsWith('data: ')) {
+              currentData = line.slice(6);
+            } else if (line === '' && currentEvent && currentData) {
+              try {
+                const data = JSON.parse(currentData);
+                handleEvent(currentEvent, data);
+              } catch (e) {}
+              currentEvent = '';
+              currentData = '';
+            }
+          }
+        };
+
+        xhr.onloadend = () => resolve();
+
+        xhr.onerror = () => {
+          if (!streamEl.querySelector('.event.result')) {
+            addEvent('error', 'Connection error — try again');
+          }
+          resolve();
+        };
+
+        xhr.send(JSON.stringify({ query, session_id: sessionId }));
+      });
+
+      sendBtn.disabled = false;
+      refreshBudget();
+      queryEl.focus();
+    }
+
+    let streamingResultEl = null;
+
+    function handleEvent(event, data) {
+      switch (event) {
+        case 'step':
+          showThinking();
+          break;
+        case 'result_delta':
+          // Streaming chunk of final answer
+          clearSpinners();
+          if (!streamingResultEl) {
+            streamingResultEl = addEvent('result', '');
+          }
+          streamingResultEl.dataset.raw = (streamingResultEl.dataset.raw || '') + data.text;
+          streamingResultEl.innerHTML = renderMarkdown(streamingResultEl.dataset.raw);
+          streamEl.scrollTop = streamEl.scrollHeight;
+          break;
+        case 'result':
+          clearSpinners();
+          if (streamingResultEl) {
+            // Finalize the streamed result
+            streamingResultEl = null;
+          } else {
+            addEvent('result', data.text);
+          }
+          break;
+        case 'error':
+          clearSpinners();
+          streamingResultEl = null;
+          addEvent('error', data.text);
+          break;
+        case 'done':
+          clearSpinners();
+          streamingResultEl = null;
+          break;
+      }
+    }
+
+    sendBtn.addEventListener('click', sendQuery);
+    queryEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendQuery();
+    });
+
+    document.getElementById('new-chat-btn').addEventListener('click', () => {
+      showEmptyState();
+      queryEl.focus();
+    });
+
+    // ---- Wallet funding modal ----
+    const fundBtn = document.getElementById('fund-btn');
+    const walletModal = document.getElementById('wallet-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const generateBtn = document.getElementById('generate-btn');
+    const fundAmountEl = document.getElementById('fund-amount');
+    const invoiceArea = document.getElementById('invoice-area');
+    const invoiceText = document.getElementById('invoice-text');
+    const qrCanvas = document.getElementById('qr-canvas');
+    const modalBalance = document.getElementById('modal-balance');
+    let balancePoll = null;
+
+    const settingDaily = document.getElementById('setting-daily');
+    const settingPerTx = document.getElementById('setting-per-tx');
+    const saveBudgetBtn = document.getElementById('save-budget-btn');
+    const budgetSaved = document.getElementById('budget-saved');
+
+    async function loadBudgetSettings() {
+      try {
+        const res = await fetch('/settings/budget');
+        const data = await res.json();
+        settingDaily.value = data.daily_budget_sats;
+        settingPerTx.value = data.max_per_purchase_sats;
+      } catch (e) {}
+    }
+
+    saveBudgetBtn.addEventListener('click', async () => {
+      saveBudgetBtn.disabled = true;
+      try {
+        await fetch('/settings/budget', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            daily_budget_sats: parseInt(settingDaily.value) || 0,
+            max_per_purchase_sats: parseInt(settingPerTx.value) || 0,
+          }),
+        });
+        budgetSaved.textContent = 'Saved';
+        budgetSaved.style.opacity = '1';
+        setTimeout(() => { budgetSaved.style.opacity = '0'; }, 2000);
+        refreshBudget();
+      } catch (e) {
+        budgetSaved.textContent = 'Error saving';
+        budgetSaved.style.opacity = '1';
+      }
+      saveBudgetBtn.disabled = false;
+    });
+
+    fundBtn.addEventListener('click', async () => {
+      walletModal.classList.add('open');
+      invoiceArea.classList.remove('active');
+      fundAmountEl.value = '';
+      await Promise.all([refreshModalBalance(), loadBudgetSettings()]);
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      walletModal.classList.remove('open');
+      if (balancePoll) { clearInterval(balancePoll); balancePoll = null; }
+    });
+
+    walletModal.addEventListener('click', (e) => {
+      if (e.target === walletModal) {
+        walletModal.classList.remove('open');
+        if (balancePoll) { clearInterval(balancePoll); balancePoll = null; }
+      }
+    });
+
+    async function refreshModalBalance() {
+      try {
+        const res = await fetch('/wallet/balance');
+        const data = await res.json();
+        modalBalance.textContent = (data.balance_sats || 0).toLocaleString();
+      } catch (e) {
+        modalBalance.textContent = '?';
+      }
+    }
+
+    generateBtn.addEventListener('click', async () => {
+      const amount = parseInt(fundAmountEl.value);
+      if (!amount || amount < 1) { fundAmountEl.focus(); return; }
+
+      generateBtn.disabled = true;
+      generateBtn.textContent = '...';
+
+      try {
+        const res = await fetch('/wallet/receive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount_sats: amount }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          invoiceText.textContent = 'Error: ' + data.error;
+          invoiceArea.classList.add('active');
+          return;
+        }
+
+        const invoice = data.invoice;
+        invoiceText.href = `lightning:${invoice}`;
+        invoiceText.dataset.invoice = invoice;
+        invoiceText.textContent = 'Open invoice in wallet';
+        invoiceArea.classList.add('active');
+
+        // Draw QR code via public API
+        const size = 200;
+        qrCanvas.width = size;
+        qrCanvas.height = size;
+        const ctx = qrCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(invoice)}&margin=8`;
+        img.onload = () => ctx.drawImage(img, 0, 0, size, size);
+
+        // Poll for balance change every 3s
+        const startBalance = parseInt(modalBalance.textContent.replace(/,/g, '')) || 0;
+        if (balancePoll) clearInterval(balancePoll);
+        balancePoll = setInterval(async () => {
+          await refreshModalBalance();
+          const newBal = parseInt(modalBalance.textContent.replace(/,/g, '')) || 0;
+          if (newBal > startBalance) {
+            clearInterval(balancePoll);
+            balancePoll = null;
+            refreshBudget();
+            invoiceText.textContent = 'Payment received!';
+            invoiceText.removeAttribute('href');
+            invoiceText.classList.add('copied');
+            setTimeout(() => invoiceText.classList.remove('copied'), 3000);
+          }
+        }, 3000);
+      } catch (e) {
+        invoiceText.textContent = 'Error: ' + e.message;
+        invoiceArea.classList.add('active');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate';
+      }
+    });
+
+    // Copy invoice on click
+    invoiceText.addEventListener('click', (e) => {
+      if (invoiceText.getAttribute('href') && invoiceText.getAttribute('href') !== '#') {
+        e.preventDefault();
+      }
+      const text = invoiceText.dataset.invoice || '';
+      if (text && !text.startsWith('Error') && !text.startsWith('Payment')) {
+        navigator.clipboard.writeText(text);
+        invoiceText.classList.add('copied');
+        setTimeout(() => invoiceText.classList.remove('copied'), 1500);
+      }
+    });
+
+    showEmptyState();
+    queryEl.focus();
+  </script>
+</body>
+</html>
