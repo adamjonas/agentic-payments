@@ -1,0 +1,6 @@
+{"ts":"2026-04-25T18:11:24.399Z","cmd":"goto","args":"file:///tmp/gstack-sketch-1777140673.html","origin":"file:///tmp/gstack-sketch-1777140673.html","durationMs":34,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-04-25T18:11:26.637Z","cmd":"screenshot","args":"/tmp/gstack-sketch.png","origin":"file:///tmp/gstack-sketch-1777140673.html","durationMs":112,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-04-25T18:21:29.887Z","cmd":"goto","args":"file:///tmp/gstack-sketch-clean.html","origin":"file:///tmp/gstack-sketch-clean.html","durationMs":8,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-04-25T18:21:32.116Z","cmd":"screenshot","args":"/tmp/gstack-sketch-clean.png","origin":"file:///tmp/gstack-sketch-clean.html","durationMs":104,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-04-25T18:25:12.467Z","cmd":"goto","args":"file:///tmp/gstack-sketch-v2.html","origin":"file:///tmp/gstack-sketch-v2.html","durationMs":21,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-04-25T18:25:14.691Z","cmd":"screenshot","args":"/tmp/gstack-sketch-v2.png","origin":"file:///tmp/gstack-sketch-v2.html","durationMs":108,"status":"ok","hasCookies":false,"mode":"launched"}

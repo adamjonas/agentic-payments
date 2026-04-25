@@ -1,0 +1,3 @@
+[2026-04-25T18:11:24.378Z] GET file:///tmp/gstack-sketch-1777140673.html → 200 (17ms, 12054B)
+[2026-04-25T18:21:29.883Z] GET file:///tmp/gstack-sketch-clean.html → 200 (1ms, 9430B)
+[2026-04-25T18:25:12.453Z] GET file:///tmp/gstack-sketch-v2.html → 200 (11ms, 9649B)
